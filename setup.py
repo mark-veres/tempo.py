@@ -7,5 +7,5 @@ setup(
     description='A python library to interact with the TEMPO online database',
     author='Mark Vereș',
     author_email='mark@markveres.ro',
-    install_requires=[],
+    install_requires=['requests_cache'],
 )
