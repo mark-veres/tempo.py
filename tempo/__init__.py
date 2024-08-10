@@ -1,9 +1,13 @@
 from typing import TypedDict, Final, Callable, Tuple, Dict
 from json import loads
+import requests_cache
 import itertools
 import requests
 
 BASE_URL: Final[str] = 'http://statistici.insse.ro:8077/tempo-ins/'
+
+SESSION_DB_PATH: str = 'cache'
+requests_cache.install_cache(SESSION_DB_PATH)
 
 eq_lambda = lambda a, b: a == b
 in_lambda = lambda a, b: b in a
