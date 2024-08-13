@@ -40,14 +40,8 @@ nodes = Node.by_property('level', 0, eq_lambda)
 ```
 
 ```py
-parent = Node.by_name('POPULATIA REZIDENTA')
-[print(n.code, '-', n.name) for n in parent.children]
-# POP105A - Populatia rezidenta la 1 ianuarie pe ...
-# POP106A - Populatia rezidenta la 1 iulie pe ...
-# POP109A - Varsta medie a populatiei rezidente ...
-
-leaf = LeafNode.by_code(parent.code, 'POP105A')
-q = node.query(
+leaf = LeafNode.by_code('POP105A')
+q = leaf.query(
     ('Varste si grupe de varsta', ['Total']),
     ('Sexe', ['Masculin']),
     ('Medii de rezidenta', ['Rural']),
@@ -55,7 +49,9 @@ q = node.query(
     ('Perioade', ['Anul 2016', 'Anul 2017']),
     ('UM: Numar persoane', ['Numar persoane'])
 )
-# 🚧 UNDER CONSTRUCTION 🚧
+# Varste si grupe de varsta, Sexe, Medii de rezidenta, Macroregiuni  regiuni de dezvoltare si judete, Perioade, UM: Numar persoane, Valoare
+# Total, Masculin, Rural, Bihor, Anul 2016, Numar persoane, 144439
+# Total, Masculin, Rural, Bihor, Anul 2017, Numar persoane, 145335
 ```
 
 ## Concepts

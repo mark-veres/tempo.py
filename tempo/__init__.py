@@ -3,6 +3,7 @@ from json import loads
 import requests_cache
 import itertools
 import requests
+import base64
 
 BASE_URL: Final[str] = 'http://statistici.insse.ro:8077/tempo-ins/'
 
@@ -146,6 +147,7 @@ class LeafNode(Node):
     observations: str
     last_updated: str
     dimensions: list[Dimension]
+    details: Dict[str, int]
 
     @classmethod
     def from_json(cls, data, code):
@@ -162,13 +164,26 @@ class LeafNode(Node):
         n.last_updated = data['ultimaActualizare']
         n.observations = data['observatii']
         n.dimensions = list(map(Dimension.from_json, data['dimensionsMap']))
+        n.details = data['details']
         return n
     
     @classmethod
-    def by_code(cls, parent_code: str, code: str):
-        node = Node.by_code(parent_code)
-        matches = [n for n in node.children if n.code == code]
-        return first_element(matches)
+    def by_code(cls, code: str):
+        data = requests.get(BASE_URL+'matrix/matrices').json()
+        match = first_element([n for n in data if n['code'] == code])
+        if match:
+            data = requests.get(BASE_URL+'matrix/'+match['code']).json()
+            return cls.from_json(data, match['code'])
+        return match
+    
+    @classmethod
+    def by_name(cls, name: str):
+        data = requests.get(BASE_URL+'matrix/matrices').json()
+        match = first_element([n for n in data if name in n['name']])
+        if match:
+            data = requests.get(BASE_URL+'matrix/'+match['code']).json()
+            return cls.from_json(data, match['code'])
+        return match
     
     def dimensions_by_label(self, label: str) -> list[Dimension]:
         return [d for d in self.dimensions if label in d.label]
@@ -177,34 +192,25 @@ class LeafNode(Node):
         return next(filter(lambda d: d.code == code, self.dimensions), None)
     
     def query(self, *args):
-        data = []
+        query_str = []
 
         for arg in args:
             d: Dimension = first_element(self.dimensions_by_label(arg[0]))
-            data.append([
-                first_element(d.options_by_label(o)).to_json() for o in arg[1]
-            ])
+            options: list[Option] = itertools.chain.from_iterable(
+                [d.options_by_label(o) for o in arg[1]])
+            codes = [str(o.code) for o in options]
+            query_str.append(','.join(codes))
         
-        return {
-            'arr': data,
+        response = requests.post(BASE_URL+'pivot', json={
+            'encQuery': ':'.join(query_str),
             'language': 'ro',
-        	'matrixDetails': {
-        		'matActive': 1,
-        		'matCaen1': 0,
-        		'matCaen2': 0,
-        		'matCharge': 0,
-        		'matDownloads': 0,
-        		'matMaxDim': 6,
-        		'matRegJ': 4,
-        		'matSiruta': 0,
-        		'matTime': 5,
-        		'matUMSpec': 0,
-        		'matViews': 0,
-        		'nomJud': 0,
-        		'nomLoc': 0
-        	},
-            'matrixName': self.name
-        }
+            'matCode': self.code,
+            'matMaxDim': self.details['matMaxDim'],
+            'matRegJ': self.details['matRegJ'],
+            'matUMSpec': self.details['matUMSpec']
+        })
+
+        return response.text
 
 def first_element(arr: list[any]) -> any:
     try:
